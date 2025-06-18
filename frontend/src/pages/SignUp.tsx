@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { signUpUser } from "../authentication"; 
 
 const SignUp: React.FC = () => {
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -11,16 +10,13 @@ const SignUp: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(''); // Reset error message
     try {
-      await axios.post('http://your-backend-api.com/auth/signup', {
-        username,
-        email,
-        password
-      });
+      await signUpUser(email, password);
       navigate('/signin');
-    } catch (err) {
+    } catch (e: any) {
       setError('Registration failed. Please try again.');
-      console.error('Registration error:', err);
+      console.error('Registration error:', e);
     }
   };
 
@@ -40,15 +36,8 @@ const SignUp: React.FC = () => {
           {error && <p className="error-message">{error}</p>}
           <form onSubmit={handleSubmit}>
             <input 
-              type="text" 
-              placeholder="Username" 
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required 
-            />
-            <input 
               type="email" 
-              placeholder="Email (optional)" 
+              placeholder="Email" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />

@@ -1,26 +1,23 @@
 import React, { useState } from "react";
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { signInUser } from "../authentication";
 
-interface SignInProps {
-  setAuthToken: (token: string) => void;
-}
-
-const SignIn: React.FC<SignInProps> = ({ setAuthToken }) => {
-  const [username, setUsername] = useState('');
+const SignIn: React.FC = () => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(''); 
     try {
-      const response = await axios.post('http://your-backend-api.com/auth/signin', {
-        username,
-        password
-      });
-      
-      setAuthToken(response.data.token);
+
+      const user = await signInUser(email, password); // signInUser returns the Firebase User object
+
+      // If signin is successful, the user object is returned.
+      // Firebase SDK manages the session state automatically.
+      console.log("Signed in Firebase user:", user);
       navigate('/dashboard'); 
     } catch (err) {
       setError('Invalid credentials');
@@ -44,10 +41,10 @@ const SignIn: React.FC<SignInProps> = ({ setAuthToken }) => {
           {error && <p className="error-message">{error}</p>}
           <form onSubmit={handleSubmit}>
             <input 
-              type="text" 
-              placeholder="Username" 
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email" 
+              placeholder="Email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required 
             />
             <input 
