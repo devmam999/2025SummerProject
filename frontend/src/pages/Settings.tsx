@@ -15,15 +15,30 @@ const Settings: React.FC = () => {
   };
 
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({
-      driveTimes,
-      foodPreference,
-      carModel,
-      numDays,
-    });
+    const data = {
+    driveTimes,
+    foodPreference,
+    carModel,
+    numDays,
+    };
+    console.log(data);
+    try {
+      await fetch('http://localhost:8000/save-settings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Optional: add auth token here if you want to secure it
+      },
+      body: JSON.stringify(data),
+      });
+
     alert('Settings saved!');
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      alert('Something went wrong.');
+    }
   };
 
   return (
