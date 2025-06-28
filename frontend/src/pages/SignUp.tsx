@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signUpUser } from "../authentication";
+import { signUpUser, signInWithGoogle } from "../authentication";
 
 const SignUp: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -13,11 +13,23 @@ const SignUp: React.FC = () => {
     setError("");
     try {
       await signUpUser(email, password);
-      navigate("/signin");
+      navigate("/dashboard");
     } catch (e: any) {
       const errorMessage = e.message || "Registration failed. Please try again.";
       setError(errorMessage);
       console.error("Registration error:", e);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError(""); // Clear previous errors
+    try {
+      await signInWithGoogle();
+      navigate("/dashboard"); // Navigate to home or dashboard after successful Google sign-in
+    } catch (e: any) {
+      const errorMessage = e.message || "Google Sign-in failed. Please try again.";
+      setError(errorMessage);
+      console.error("Google Sign-in error:", e);
     }
   };
 
@@ -38,7 +50,7 @@ const SignUp: React.FC = () => {
         </div>
         <a
           href="#"
-          className="text-black font-medium no-underline hover:underline"
+          className="text-black font-medium no-underline hover:underline cursor-pointer"
         >
           Home
         </a>
@@ -74,11 +86,24 @@ const SignUp: React.FC = () => {
             />
             <button
               type="submit"
-              className="mt-3 py-2 bg-[#8BC34A] hover:bg-[#7cb342] text-white font-bold rounded transition-colors"
+              className="mt-3 py-2 bg-[#8BC34A] hover:bg-[#7cb342] text-white font-bold rounded transition-colors cursor-pointer"
             >
               Create Account
             </button>
           </form>
+
+          <div className="my-4 text-sm text-gray-500">
+            Or
+          </div>
+
+          <button
+            onClick={handleGoogleSignIn} // This calls the new function
+            className="py-2 w-full flex items-center justify-center bg-gray-400 hover:bg-gray-500 text-white font-bold rounded transition-colors mb-2 cursor-pointer"
+          >
+            {/* You'll need a Google icon! Place 'google-icon.svg' in your public folder */}
+            <img src="/google-icon.svg" alt="Google" className="w-5 h-5 mr-2" />
+            Sign Up with Google
+          </button>
 
           <p className="text-xs mt-4">
             Already have an account?{" "}
