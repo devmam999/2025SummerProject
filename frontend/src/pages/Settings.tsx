@@ -3,8 +3,9 @@ import React, { useState } from "react";
 const Settings: React.FC = () => {
   const [driveTimes, setDriveTimes] = useState<string[]>([]);
   const [foodPreference, setFoodPreference] = useState("");
-  const [carModel, setCarModel] = useState("");
+  const [gasMileage, setGasMileage] = useState<number | "">("");
   const [numDays, setNumDays] = useState<number | "">("");
+  const [avoidTolls, setAvoidTolls] = useState(false);
 
   const drivingOptions = ["Morning", "Afternoon", "Evening", "Night"];
 
@@ -19,8 +20,9 @@ const Settings: React.FC = () => {
     const data = {
       driveTimes,
       foodPreference,
-      carModel,
+      gasMileage,
       numDays,
+      avoidTolls,
     };
     console.log(data);
     try {
@@ -91,14 +93,14 @@ const Settings: React.FC = () => {
         </select>
       </label>
 
-      {/* Car Model */}
+      {/* Gas Mileage */}
       <label className="block mb-6">
-        <span className="text-lg font-semibold text-gray-700">Car model:</span>
+        <span className="text-lg font-semibold text-gray-700">Gas Mileage (MPG):</span>
         <input
-          type="text"
-          value={carModel}
-          onChange={(e) => setCarModel(e.target.value)}
-          placeholder="Enter your car model"
+          type="number"
+          value={gasMileage}
+          onChange={(e) => setGasMileage(e.target.valueAsNumber)}
+          placeholder="Enter your gas mileage in miles per gallon"
           required
           className="mt-2 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm placeholder-gray-400 focus:border-[#7cb342] focus:ring-1 focus:ring-[#7cb342]"
         />
@@ -116,6 +118,18 @@ const Settings: React.FC = () => {
           className="mt-2 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm placeholder-gray-400 focus:border-[#7cb342] focus:ring-1 focus:ring-[#7cb342]"
         />
       </label>
+      {/* Avoid Tolls */}
+      <label className="block mb-6">
+      <div className="flex items-center"> 
+        <span className="text-lg font-semibold text-gray-700 mr-3">Avoid Tolls?</span>
+        <input
+          type="checkbox" 
+          checked={avoidTolls} 
+          onChange={(e) => setAvoidTolls(e.target.checked)} 
+          className="h-5 w-5 text-[#7cb342] border-gray-300 rounded focus:ring-[#7cb342]"
+        />
+      </div>
+    </label>
 
       {/* Submit Button */}
       <button

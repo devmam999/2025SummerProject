@@ -13,7 +13,7 @@ const SignUp: React.FC = () => {
     setError("");
     try {
       await signUpUser(email, password);
-      navigate("/dashboard");
+      navigate("/settings");
     } catch (e: any) {
       const errorMessage = e.message || "Registration failed. Please try again.";
       setError(errorMessage);
@@ -25,7 +25,7 @@ const SignUp: React.FC = () => {
     setError(""); // Clear previous errors
     try {
       await signInWithGoogle();
-      navigate("/dashboard"); // Navigate to home or dashboard after successful Google sign-in
+      navigate("/settings"); 
     } catch (e: any) {
       const errorMessage = e.message || "Google Sign-in failed. Please try again.";
       setError(errorMessage);
