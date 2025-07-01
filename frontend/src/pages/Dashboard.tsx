@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react'; // Removed useRef
 import { GoogleMap, useJsApiLoader, DirectionsRenderer, Autocomplete } from '@react-google-maps/api';
 
 // Define the shape for the map options
@@ -41,25 +41,20 @@ const Dashboard: React.FC = () => {
     libraries: libraries,
   });
 
-  const [map, setMap] = useState<google.maps.Map | null>(null);
+  // Removed 'map' from state, as it's not directly used after being set
+  const [, setMap] = useState<google.maps.Map | null>(null); // Still set, but not read later
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   const [distance, setDistance] = useState<string>('');
   const [duration, setDuration] = useState<string>('');
 
-  // Autocomplete instance states - These store the actual Autocomplete objects
+  // Autocomplete instance states
   const [originAutocomplete, setOriginAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [destinationAutocomplete, setDestinationAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
 
-  // We no longer need these refs because Autocomplete directly manages the input's value
-  // and we get the final place information from the Autocomplete instance itself.
-  // We can remove them, or keep them if you need them for something else (e.g., direct DOM manipulation).
-  // For simplicity and direct addressing of the type error, I'm removing direct input refs for value retrieval.
-  // If you *must* have direct refs to the inputs (e.g., for `focus()`), then the best practice
-  // is to create a separate ref for the *input element itself* and attach it, while Autocomplete also attaches its own.
-  // For now, let's simplify to avoid the type error.
+  // Removed originInputRef and destinationInputRef as they are no longer used
 
   const onLoad = useCallback(function callback(mapInstance: google.maps.Map) {
-    setMap(mapInstance);
+    setMap(mapInstance); // Still set the map instance if needed later (e.g., for map.panTo)
   }, []);
 
   const onUnmount = useCallback(function callback() {
@@ -75,12 +70,10 @@ const Dashboard: React.FC = () => {
     setDestinationAutocomplete(autocomplete);
   }, []);
 
-  // When a place is selected, we can get its formatted address directly
   const onOriginPlaceChanged = useCallback(() => {
     if (originAutocomplete) {
       const place = originAutocomplete.getPlace();
-      if (place.name) { // Use name or formatted_address
-         // The Autocomplete input itself is already updated, so no need to set input.value
+      if (place.name) {
          console.log('Origin Place Selected:', place.name || place.formatted_address);
       } else {
         console.log('Origin: No details available for input:', originAutocomplete.getPlace());
@@ -100,7 +93,6 @@ const Dashboard: React.FC = () => {
   }, [destinationAutocomplete]);
 
 
-  // Function to calculate and display the route
   const calculateRoute = async () => {
     if (!isLoaded || !window.google || !window.google.maps || !window.google.maps.DirectionsService) {
       alert("Map services are not ready yet. Please wait a moment and try again.");
@@ -115,9 +107,6 @@ const Dashboard: React.FC = () => {
     if (originAutocomplete && originAutocomplete.getPlace() && (originAutocomplete.getPlace().name || originAutocomplete.getPlace().formatted_address)) {
         originValue = originAutocomplete.getPlace().formatted_address || originAutocomplete.getPlace().name || '';
     } else {
-        // Fallback: If no place selected, or place has no address, try to use current input value directly
-        // This is where a direct ref to the input would be useful, if Autocomplete doesn't clear on invalid entry.
-        // For now, if getPlace() fails, we assume input is not valid
         alert('Please select a valid origin from the suggestions.');
         return;
     }
@@ -154,38 +143,23 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Function to clear the route and inputs
   const clearRoute = () => {
     setDirectionsResponse(null);
     setDistance('');
     setDuration('');
-    // To clear the Autocomplete inputs, you typically need to set their value.
-    // Since Autocomplete controls the input, you might need to grab the direct DOM element.
-    // Or, a simpler way is to re-render the Autocomplete component with an empty value,
-    // but that's more complex. For now, we'll try to directly manipulate the input.
-    // If you need direct input refs for clearing, re-introduce them but be careful with Autocomplete.
-    // For now, let's assume Autocomplete implicitly clears its input when no place is selected or if you hit backspace.
-    // A more robust way would be to set a state for the input value and pass it as a `value` prop to the input.
 
-    // A common workaround for clearing Autocomplete inputs:
     if (originAutocomplete) {
-        originAutocomplete.set('place', null); // This effectively clears the selection
-        // You might still need to manually clear the input's text value if set('place', null) doesn't visually clear it.
-        // The Autocomplete component doesn't expose a direct `clear()` method for the input itself readily.
+        originAutocomplete.set('place', null); // Clear Autocomplete's internal place
+        // Manually clear the input text to ensure it's visually empty
+        const originInput = document.getElementById('start-point') as HTMLInputElement;
+        if (originInput) originInput.value = '';
     }
     if (destinationAutocomplete) {
-        destinationAutocomplete.set('place', null);
+        destinationAutocomplete.set('place', null); // Clear Autocomplete's internal place
+        // Manually clear the input text
+        const destinationInput = document.getElementById('end-point') as HTMLInputElement;
+        if (destinationInput) destinationInput.value = '';
     }
-    // As a fallback/alternative for visual clearing, you might still need to directly manipulate the input.
-    // If you add inputRef back for this purpose, just don't pass it to Autocomplete as `ref`.
-    // Let's re-introduce the refs, but rename them to emphasize they are for the input element, not Autocomplete object.
-    if (document.getElementById('start-point')) {
-        (document.getElementById('start-point') as HTMLInputElement).value = '';
-    }
-    if (document.getElementById('end-point')) {
-        (document.getElementById('end-point') as HTMLInputElement).value = '';
-    }
-
   };
 
   const mapOptions: MapOptions = useMemo(() => {
@@ -246,9 +220,8 @@ const Dashboard: React.FC = () => {
           <Autocomplete onLoad={onOriginLoad} onPlaceChanged={onOriginPlaceChanged}>
             <input
               type="text"
-              id="start-point"
-              // Removed 'ref={originInputRef}' here
-              placeholder="Type a starting point"
+              id="start-point" // Important for document.getElementById later
+              placeholder="Enter a start point"
               className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline text-xs"
             />
           </Autocomplete>
@@ -261,9 +234,8 @@ const Dashboard: React.FC = () => {
           <Autocomplete onLoad={onDestinationLoad} onPlaceChanged={onDestinationPlaceChanged}>
             <input
               type="text"
-              id="end-point"
-              // Removed 'ref={destinationInputRef}' here
-              placeholder="Type a destination"
+              id="end-point" // Important for document.getElementById later
+              placeholder="Enter an end point"
               className="shadow appearance-none border rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline text-xs"
             />
           </Autocomplete>
