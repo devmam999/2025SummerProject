@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react'; // Removed useRef
+import React, { useState, useCallback, useMemo } from 'react';
 import { GoogleMap, useJsApiLoader, DirectionsRenderer, Autocomplete } from '@react-google-maps/api';
 
 // Define the shape for the map options
@@ -17,7 +17,7 @@ interface MapOptions {
 // Define the shape for the libraries to load
 const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = ["places"];
 
-// Initial map center (worldwide view)
+// Initial map center (San Jose, CA) - good starting point
 const initialCenter: google.maps.LatLngLiteral = {
   lat: 37.3355,
   lng: -121.8939
@@ -27,7 +27,7 @@ const Dashboard: React.FC = () => {
   const API_KEY = import.meta.env.VITE_MAPS_API_KEY;
 
   if (!API_KEY) {
-    console.error("Google Maps API Key is missing! Please set REACT_APP_Maps_API_KEY in your .env file.");
+    console.error("Google Maps API Key is missing! Please set VITE_MAPS_API_KEY in your .env file.");
     return (
       <div className="flex items-center justify-center h-screen bg-red-100 text-red-700">
         <p className="text-lg font-semibold">Error: Google Maps API Key is not configured. Please check your .env file.</p>
@@ -41,8 +41,7 @@ const Dashboard: React.FC = () => {
     libraries: libraries,
   });
 
-  // Removed 'map' from state, as it's not directly used after being set
-  const [, setMap] = useState<google.maps.Map | null>(null); // Still set, but not read later
+  const [map, setMap] = useState<google.maps.Map | null>(null); // Keep map in state for fitBounds
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   const [distance, setDistance] = useState<string>('');
   const [duration, setDuration] = useState<string>('');
@@ -51,10 +50,18 @@ const Dashboard: React.FC = () => {
   const [originAutocomplete, setOriginAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [destinationAutocomplete, setDestinationAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
 
-  // Removed originInputRef and destinationInputRef as they are no longer used
+  // NEW: State to store the actual PlaceResult objects for precise routing
+  const [originPlaceResult, setOriginPlaceResult] = useState<google.maps.places.PlaceResult | null>(null);
+  const [destinationPlaceResult, setDestinationPlaceResult] = useState<google.maps.places.PlaceResult | null>(null);
+
 
   const onLoad = useCallback(function callback(mapInstance: google.maps.Map) {
-    setMap(mapInstance); // Still set the map instance if needed later (e.g., for map.panTo)
+    setMap(mapInstance);
+    // Set initial map view when map is loaded
+    if (mapInstance) {
+      mapInstance.setCenter(initialCenter);
+      mapInstance.setZoom(10); // A good zoom level for a city area
+    }
   }, []);
 
   const onUnmount = useCallback(function callback() {
@@ -73,10 +80,12 @@ const Dashboard: React.FC = () => {
   const onOriginPlaceChanged = useCallback(() => {
     if (originAutocomplete) {
       const place = originAutocomplete.getPlace();
+      // Store the full place object
+      setOriginPlaceResult(place);
       if (place.name) {
-         console.log('Origin Place Selected:', place.name || place.formatted_address);
+        console.log('Origin Place Selected:', place.name || place.formatted_address);
       } else {
-        console.log('Origin: No details available for input:', originAutocomplete.getPlace());
+        console.log('Origin: No details available for input:', place);
       }
     }
   }, [originAutocomplete]);
@@ -84,10 +93,12 @@ const Dashboard: React.FC = () => {
   const onDestinationPlaceChanged = useCallback(() => {
     if (destinationAutocomplete) {
       const place = destinationAutocomplete.getPlace();
+      // Store the full place object
+      setDestinationPlaceResult(place);
       if (place.name) {
         console.log('Destination Place Selected:', place.name || place.formatted_address);
       } else {
-        console.log('Destination: No details available for input:', destinationAutocomplete.getPlace());
+        console.log('Destination: No details available for input:', place);
       }
     }
   }, [destinationAutocomplete]);
@@ -100,40 +111,33 @@ const Dashboard: React.FC = () => {
       return;
     }
 
-    let originValue = '';
-    let destinationValue = '';
-
-    // Get the place details from the Autocomplete instances
-    if (originAutocomplete && originAutocomplete.getPlace() && (originAutocomplete.getPlace().name || originAutocomplete.getPlace().formatted_address)) {
-        originValue = originAutocomplete.getPlace().formatted_address || originAutocomplete.getPlace().name || '';
-    } else {
+    // NEW: Use the stored PlaceResult objects for routing
+    if (!originPlaceResult || !originPlaceResult.place_id) {
         alert('Please select a valid origin from the suggestions.');
         return;
     }
-
-    if (destinationAutocomplete && destinationAutocomplete.getPlace() && (destinationAutocomplete.getPlace().name || destinationAutocomplete.getPlace().formatted_address)) {
-        destinationValue = destinationAutocomplete.getPlace().formatted_address || destinationAutocomplete.getPlace().name || '';
-    } else {
+    if (!destinationPlaceResult || !destinationPlaceResult.place_id) {
         alert('Please select a valid destination from the suggestions.');
         return;
-    }
-
-    if (originValue === '' || destinationValue === '') {
-      alert('Please ensure both a start and an end point are selected from the suggestions.');
-      return;
     }
 
     const directionsService = new google.maps.DirectionsService();
     try {
       const results = await directionsService.route({
-        origin: originValue,
-        destination: destinationValue,
+        // Pass the place_id directly for precise routing!
+        origin: { placeId: originPlaceResult.place_id },
+        destination: { placeId: destinationPlaceResult.place_id },
         travelMode: google.maps.TravelMode.DRIVING,
       });
 
       setDirectionsResponse(results);
       setDistance(results.routes[0].legs[0].distance?.text || '');
       setDuration(results.routes[0].legs[0].duration?.text || '');
+
+      // Fit map to bounds of the route
+      if (map && results.routes[0].bounds) {
+        map.fitBounds(results.routes[0].bounds);
+      }
     } catch (error) {
       console.error('Error fetching directions:', error);
       setDirectionsResponse(null);
@@ -148,25 +152,35 @@ const Dashboard: React.FC = () => {
     setDistance('');
     setDuration('');
 
+    // Clear the Autocomplete instances and their associated PlaceResult states
     if (originAutocomplete) {
-        originAutocomplete.set('place', null); // Clear Autocomplete's internal place
-        // Manually clear the input text to ensure it's visually empty
+        originAutocomplete.set('place', null); // Clears Autocomplete's internal place
         const originInput = document.getElementById('start-point') as HTMLInputElement;
-        if (originInput) originInput.value = '';
+        if (originInput) originInput.value = ''; // Manually clear the input text
     }
+    setOriginPlaceResult(null); // Clear our stored PlaceResult
+
     if (destinationAutocomplete) {
-        destinationAutocomplete.set('place', null); // Clear Autocomplete's internal place
-        // Manually clear the input text
+        destinationAutocomplete.set('place', null); // Clears Autocomplete's internal place
         const destinationInput = document.getElementById('end-point') as HTMLInputElement;
-        if (destinationInput) destinationInput.value = '';
+        if (destinationInput) destinationInput.value = ''; // Manually clear the input text
+    }
+    setDestinationPlaceResult(null); // Clear our stored PlaceResult
+
+    // Reset map center/zoom after clearing route
+    if (map) {
+        map.setCenter(initialCenter);
+        map.setZoom(10);
     }
   };
 
   const mapOptions: MapOptions = useMemo(() => {
-    if (!isLoaded) return { zoom: 2, center: initialCenter };
+    if (!isLoaded || !window.google || !window.google.maps) {
+      return { zoom: 2, center: initialCenter };
+    }
 
     return {
-      zoom: 2,
+      zoom: 10,
       center: initialCenter,
       disableDefaultUI: false,
       zoomControl: true,
