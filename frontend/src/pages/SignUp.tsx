@@ -1,31 +1,37 @@
+// src/pages/SignUp.tsx
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signUpUser, signInWithGoogle } from "../authentication";
+import { signInWithGoogle, signUpUser } from "../authentication"; // Ensure signUpUser is imported
 
 const SignUp: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [rememberMe, setRememberMe] = useState(false); // State for remember me checkbox
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     try {
-      await signUpUser(email, password);
-      navigate("/settings");
-    } catch (e: any) {
-      const errorMessage = e.message || "Registration failed. Please try again.";
-      setError(errorMessage);
-      console.error("Registration error:", e);
+      // FIX 1: Pass 'rememberMe' as the third argument
+      const user = await signUpUser(email, password, rememberMe);
+      console.log("Signed up Firebase user:", user);
+      navigate("/dashboard");
+    } catch (err: any) { // Type 'any' for error for safer handling
+      // You can add more specific Firebase error handling here if desired
+      setError(err.message || "Sign-up failed. Please try again.");
+      console.error("Sign-up error:", err);
     }
   };
 
   const handleGoogleSignIn = async () => {
     setError(""); // Clear previous errors
     try {
-      await signInWithGoogle();
-      navigate("/settings"); 
+      // FIX 2: Pass 'rememberMe' as the argument
+      await signInWithGoogle(rememberMe);
+      navigate("/dashboard"); // Navigate to home or dashboard after successful Google sign-in
     } catch (e: any) {
       const errorMessage = e.message || "Google Sign-in failed. Please try again.";
       setError(errorMessage);
@@ -48,10 +54,7 @@ const SignUp: React.FC = () => {
           />
           RoadMap AI
         </div>
-        <a
-          href="#"
-          className="text-black font-medium no-underline hover:underline cursor-pointer"
-        >
+        <a href="#" className="text-black font-medium no-underline hover:underline">
           Home
         </a>
       </nav>
@@ -59,11 +62,9 @@ const SignUp: React.FC = () => {
       {/* Content */}
       <div className="flex justify-center items-center py-16 px-5">
         <div className="bg-white p-8 rounded-lg shadow-md max-w-[350px] w-full text-center mt-3%">
-          <h2 className="text-4xl font-bold mb-2">Sign Up</h2>
+          <h2 className="text-4xl font-bold mb-2">Create an Account</h2> {/* Updated text for signup */}
           <p className="text-sm text-gray-600 mb-5">
-            Create your account and start
-            <br />
-            mapping your next exciting journey!
+            Sign up to start mapping your next exciting journey!
           </p>
           {error && <p className="text-red-600 mb-4">{error}</p>}
 
@@ -84,11 +85,23 @@ const SignUp: React.FC = () => {
               required
               className="mb-4 p-2 text-sm border border-gray-300 rounded"
             />
+            <div className="flex items-center mb-4">
+              <input
+                id="rememberMe"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 text-[#049645] border-gray-300 rounded focus:ring-[#049645]"
+              />
+              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
+                Remember me
+              </label>
+            </div>
             <button
               type="submit"
               className="mt-3 py-2 bg-[#8BC34A] hover:bg-[#7cb342] text-white font-bold rounded transition-colors cursor-pointer"
             >
-              Create Account
+              Sign Up
             </button>
           </form>
 
@@ -97,23 +110,28 @@ const SignUp: React.FC = () => {
           </div>
 
           <button
-            onClick={handleGoogleSignIn} // This calls the new function
-            className="py-2 w-full flex items-center justify-center bg-gray-400 hover:bg-gray-500 text-white font-bold rounded transition-colors mb-2 cursor-pointer"
+            onClick={handleGoogleSignIn}
+            className="py-2 w-full flex items-center justify-center
+              bg-gray-100 hover:bg-gray-200
+              text-gray-800
+              font-bold rounded transition-colors mb-2
+              border border-gray-300
+              cursor-pointer"
           >
-            {/* You'll need a Google icon! Place 'google-icon.svg' in your public folder */}
             <img src="/google-icon.svg" alt="Google" className="w-5 h-5 mr-2" />
             Sign Up with Google
           </button>
 
           <p className="text-xs mt-4">
             Already have an account?{" "}
-            <a href="/signin" className="text-[#007acc] no-underline hover:underline">
-              Log In
+            <a href="/signin" className="text-[#007acc] no-underline hover:underline cursor-pointer">
+              Sign In
             </a>
           </p>
         </div>
       </div>
 
+      {/* Background images */}
       <img
         src="/Sdesign.png"
         alt="Cool background right"
