@@ -1,37 +1,49 @@
 // src/pages/SignUp.tsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // Import useEffect
 import { useNavigate } from "react-router-dom";
-import { signInWithGoogle, signUpUser } from "../authentication"; // Ensure signUpUser is imported
+import { signInWithGoogle, signUpUser, auth } from "../authentication"; // Make sure 'auth' is imported
 
 const SignUp: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [rememberMe, setRememberMe] = useState(false); // State for remember me checkbox
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
+
+  // Add this useEffect to handle redirects if the user is already authenticated
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      if (currentUser) {
+        // If user is already logged in when this component mounts, redirect them
+        // This prevents an already logged-in user from seeing the signup page
+        // It will *not* interfere with the navigate("/settings") immediately after a fresh signup
+        console.log("User already logged in on SignUp page, redirecting to dashboard.");
+        navigate("/dashboard", { replace: true });
+      }
+    });
+    return () => unsubscribe(); // Clean up the listener on component unmount
+  }, [navigate]); // Dependency array to re-run if navigate function changes (unlikely)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     try {
-      // FIX 1: Pass 'rememberMe' as the third argument
-      const user = await signUpUser(email, password, rememberMe);
-      console.log("Signed up Firebase user:", user);
-      navigate("/dashboard");
-    } catch (err: any) { // Type 'any' for error for safer handling
-      // You can add more specific Firebase error handling here if desired
+      await signUpUser(email, password, rememberMe);
+      console.log("Signed up Firebase user, navigating to settings...");
+      navigate("/settings"); // This will now correctly navigate to settings
+    } catch (err: any) {
       setError(err.message || "Sign-up failed. Please try again.");
       console.error("Sign-up error:", err);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    setError(""); // Clear previous errors
+    setError("");
     try {
-      // FIX 2: Pass 'rememberMe' as the argument
       await signInWithGoogle(rememberMe);
-      navigate("/dashboard"); // Navigate to home or dashboard after successful Google sign-in
+      console.log("Google signed in user, navigating to settings...");
+      navigate("/settings"); // This will now correctly navigate to settings
     } catch (e: any) {
       const errorMessage = e.message || "Google Sign-in failed. Please try again.";
       setError(errorMessage);
@@ -62,7 +74,7 @@ const SignUp: React.FC = () => {
       {/* Content */}
       <div className="flex justify-center items-center py-16 px-5">
         <div className="bg-white p-8 rounded-lg shadow-md max-w-[350px] w-full text-center mt-3%">
-          <h2 className="text-4xl font-bold mb-2">Create an Account</h2> {/* Updated text for signup */}
+          <h2 className="text-4xl font-bold mb-2">Create an Account</h2>
           <p className="text-sm text-gray-600 mb-5">
             Sign up to start mapping your next exciting journey!
           </p>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 const Settings: React.FC = () => {
   const [driveTimes, setDriveTimes] = useState<string[]>([]);
@@ -6,6 +7,8 @@ const Settings: React.FC = () => {
   const [gasMileage, setGasMileage] = useState<number | "">("");
   const [numDays, setNumDays] = useState<number | "">("");
   const [avoidTolls, setAvoidTolls] = useState(false);
+
+  const navigate = useNavigate(); // Initialize useNavigate hook
 
   const drivingOptions = ["Morning", "Afternoon", "Evening", "Night"];
 
@@ -35,6 +38,7 @@ const Settings: React.FC = () => {
       });
 
       alert("Settings saved!");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Failed to save settings:", error);
       alert("Something went wrong.");
@@ -120,12 +124,12 @@ const Settings: React.FC = () => {
       </label>
       {/* Avoid Tolls */}
       <label className="block mb-6">
-      <div className="flex items-center"> 
+      <div className="flex items-center">
         <span className="text-lg font-semibold text-gray-700 mr-3">Avoid Tolls?</span>
         <input
-          type="checkbox" 
-          checked={avoidTolls} 
-          onChange={(e) => setAvoidTolls(e.target.checked)} 
+          type="checkbox"
+          checked={avoidTolls}
+          onChange={(e) => setAvoidTolls(e.target.checked)}
           className="h-5 w-5 text-[#7cb342] border-gray-300 rounded focus:ring-[#7cb342]"
         />
       </div>
