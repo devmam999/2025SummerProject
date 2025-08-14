@@ -1,5 +1,7 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { auth, db } from "../firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const Settings: React.FC = () => {
   const [driveTimes, setDriveTimes] = useState<string[]>([]);
@@ -7,9 +9,9 @@ const Settings: React.FC = () => {
   const [gasMileage, setGasMileage] = useState<number | "">("");
   const [numDays, setNumDays] = useState<number | "">("");
   const [avoidTolls, setAvoidTolls] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const navigate = useNavigate(); // Initialize useNavigate hook
-
+  const navigate = useNavigate();
   const drivingOptions = ["Morning", "Afternoon", "Evening", "Night"];
 
   const toggleDriveTime = (time: string) => {
@@ -18,32 +20,57 @@ const Settings: React.FC = () => {
     );
   };
 
+  // Load user settings on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!auth.currentUser) return;
+
+      try {
+        const docRef = doc(db, "users", auth.currentUser.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setDriveTimes(data.driveTimes || []);
+          setFoodPreference(data.foodPreference || "");
+          setGasMileage(data.gasMileage || "");
+          setNumDays(data.numDays || "");
+          setAvoidTolls(data.avoidTolls || false);
+        }
+      } catch (err) {
+        console.error("Failed to fetch user settings:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth.currentUser) return;
+
     const data = {
       driveTimes,
       foodPreference,
       gasMileage,
       numDays,
       avoidTolls,
+      email: auth.currentUser.email, // optional, for reference
     };
-    console.log(data);
-    try {
-      await fetch("http://localhost:8000/save-settings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
 
+    try {
+      await setDoc(doc(db, "users", auth.currentUser.uid), data);
       alert("Settings saved!");
       navigate("/dashboard");
-    } catch (error) {
-      console.error("Failed to save settings:", error);
-      alert("Something went wrong.");
+    } catch (err) {
+      console.error("Failed to save settings:", err);
+      alert("Something went wrong while saving settings.");
     }
   };
+
+  if (loading) return <p className="text-center mt-10">Loading user settings...</p>;
 
   return (
     <form
@@ -61,10 +88,7 @@ const Settings: React.FC = () => {
         </legend>
         <div className="flex flex-wrap gap-4">
           {drivingOptions.map((time) => (
-            <label
-              key={time}
-              className="flex items-center cursor-pointer select-none"
-            >
+            <label key={time} className="flex items-center cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={driveTimes.includes(time)}
@@ -79,18 +103,14 @@ const Settings: React.FC = () => {
 
       {/* Food Preference */}
       <label className="block mb-6">
-        <span className="text-lg font-semibold text-gray-700">
-          Food preference:
-        </span>
+        <span className="text-lg font-semibold text-gray-700">Food preference:</span>
         <select
           className="mt-2 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:border-[#7cb342] focus:ring-1 focus:ring-[#7cb342]"
           value={foodPreference}
           onChange={(e) => setFoodPreference(e.target.value)}
           required
         >
-          <option value="" disabled>
-            Select one
-          </option>
+          <option value="" disabled>Select one</option>
           <option value="packed food">Packed Food</option>
           <option value="fast food">Fast Food</option>
           <option value="fine dining">Fine Dining</option>
@@ -104,7 +124,7 @@ const Settings: React.FC = () => {
           type="number"
           value={gasMileage}
           onChange={(e) => setGasMileage(e.target.valueAsNumber)}
-          placeholder="Enter your gas mileage in miles per gallon"
+          placeholder="Enter your gas mileage"
           required
           className="mt-2 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm placeholder-gray-400 focus:border-[#7cb342] focus:ring-1 focus:ring-[#7cb342]"
         />
@@ -122,20 +142,20 @@ const Settings: React.FC = () => {
           className="mt-2 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm placeholder-gray-400 focus:border-[#7cb342] focus:ring-1 focus:ring-[#7cb342]"
         />
       </label>
+
       {/* Avoid Tolls */}
       <label className="block mb-6">
-      <div className="flex items-center">
-        <span className="text-lg font-semibold text-gray-700 mr-3">Avoid Tolls?</span>
-        <input
-          type="checkbox"
-          checked={avoidTolls}
-          onChange={(e) => setAvoidTolls(e.target.checked)}
-          className="h-5 w-5 text-[#7cb342] border-gray-300 rounded focus:ring-[#7cb342]"
-        />
-      </div>
-    </label>
+        <div className="flex items-center">
+          <span className="text-lg font-semibold text-gray-700 mr-3">Avoid Tolls?</span>
+          <input
+            type="checkbox"
+            checked={avoidTolls}
+            onChange={(e) => setAvoidTolls(e.target.checked)}
+            className="h-5 w-5 text-[#7cb342] border-gray-300 rounded focus:ring-[#7cb342]"
+          />
+        </div>
+      </label>
 
-      {/* Submit Button */}
       <button
         type="submit"
         className="w-full bg-[#8BC34A] text-white font-bold py-3 rounded-lg hover:bg-[#7cb342] focus:outline-none focus:ring-2 focus:ring-[#7cb342] transition"
