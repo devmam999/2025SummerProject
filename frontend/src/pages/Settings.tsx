@@ -8,6 +8,7 @@ const Settings: React.FC = () => {
   const [foodPreference, setFoodPreference] = useState("");
   const [gasMileage, setGasMileage] = useState<number | "">("");
   const [numDays, setNumDays] = useState<number | "">("");
+  const [budget, setBudget] = useState<number | "">("");
   const [avoidTolls, setAvoidTolls] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -35,6 +36,7 @@ const Settings: React.FC = () => {
           setFoodPreference(data.foodPreference || "");
           setGasMileage(data.gasMileage || "");
           setNumDays(data.numDays || "");
+          setBudget(data.budget || "");
           setAvoidTolls(data.avoidTolls || false);
         }
       } catch (err) {
@@ -56,6 +58,7 @@ const Settings: React.FC = () => {
       foodPreference,
       gasMileage,
       numDays,
+      budget,
       avoidTolls,
       email: auth.currentUser.email, // optional, for reference
     };
@@ -131,13 +134,27 @@ const Settings: React.FC = () => {
       </label>
 
       {/* Number of Days */}
-      <label className="block mb-8">
+      <label className="block mb-6">
         <span className="text-lg font-semibold text-gray-700">Number of days:</span>
         <input
           type="number"
           min={1}
           value={numDays}
           onChange={(e) => setNumDays(Number(e.target.value))}
+          required
+          className="mt-2 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm placeholder-gray-400 focus:border-[#7cb342] focus:ring-1 focus:ring-[#7cb342]"
+        />
+      </label>
+
+      {/* Budget */}
+      <label className="block mb-8">
+        <span className="text-lg font-semibold text-gray-700">Budget ($):</span>
+        <input
+          type="number"
+          min={0}
+          value={budget}
+          onChange={(e) => setBudget(Number(e.target.value))}
+          placeholder="Enter your trip budget"
           required
           className="mt-2 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm placeholder-gray-400 focus:border-[#7cb342] focus:ring-1 focus:ring-[#7cb342]"
         />
